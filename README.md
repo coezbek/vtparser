@@ -1,6 +1,6 @@
 # VT 100 Parser Gem
 
-This gem is a parser for VT100 terminal escape sequences. It is based on the C code from https://github.com/haberman/vtparse/.
+This gem is a parser for VT100 terminal escape sequences. It is based on the C code from https://github.com/haberman/vtparse/ and implements the statemachine from https://www.vt100.net/emu/dec_ansi_parser
 
 The purpose of this Gem is to have a relatively easy way to filter/modify the output of child/sub-processes (for instance launched via `PTY::spawn`) which use animation or colors. 
 
