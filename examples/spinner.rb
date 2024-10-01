@@ -4,6 +4,7 @@
 # Helper script to be used to demonstrate `indent_cli.rb`
 # 
 
+# See: https://github.com/sindresorhus/cli-spinners/blob/main/spinners.json
 frames = [
   "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"
 ]
