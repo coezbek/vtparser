@@ -65,6 +65,7 @@ end
 begin
   PTY.spawn(command) do |stdout_and_stderr, stdin, pid|
 
+    # Start separate thread to pipe stdin to the child process
     Thread.new do     
       while pid != nil
         stdin.write(STDIN.readpartial(1024)) # Requires user to press enter!
@@ -74,8 +75,10 @@ begin
       exit(0)
     end
 
+    # Pipe stdout and stderr to the parser
     begin
-      stdout_and_stderr.winsize = $stdout.winsize
+      # Ensure the child process has a window size, because tools such as yarn use it to identify tty mode
+      stdout_and_stderr.winsize = $stdout.winsize 
 
       stdout_and_stderr.each_char do |char|
 
