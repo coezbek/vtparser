@@ -4,6 +4,17 @@ require 'rainbow/refinement' # for colorizing output
 using Rainbow
 require_relative '../lib/vtparser'
 
+#
+# 'indent_cli.rb' - Example for vtparser
+#
+# This example demonstrates how to use the VTParser to indent the output of simple (!) tty programs 
+# with colorized or animated output.
+#
+# Run with `ruby indent_cli.rb <command>`` where <command> is the command you want to run.
+#
+# A simple loading animation is included in `examples/spinner.rb`: `ruby indent_cli.rb 'ruby spinner.rb'`
+#
+
 # Get the command from ARGV
 command = ARGV.join(' ')
 if command.empty?
@@ -12,6 +23,11 @@ if command.empty?
 end
 
 line_indent = '   ▐  '.yellow
+line_indent_length = 6
+
+#
+# Use VTParser to process the VT100 escape sequences outputted by nested program and prepend the line_indent text.
+#
 first_line = true
 parser = VTParser.new do |action, ch, intermediate_chars, params|
   print line_indent if first_line
@@ -19,6 +35,7 @@ parser = VTParser.new do |action, ch, intermediate_chars, params|
 
   to_output = VTParser::to_ansi(action, ch, intermediate_chars, params)
 
+  # Handle newlines, carriage returns, and cursor movement 
   case action
   when :print, :execute, :put, :osc_put
     if ch == "\n" || ch == "\r"
@@ -27,16 +44,13 @@ parser = VTParser.new do |action, ch, intermediate_chars, params|
       next
     end
   when :csi_dispatch
-    if to_output == "\e[2K"
+    if to_output == "\e[2K" # Clear line
       print "\e[2K"
       print line_indent
       next
     else
-      if ch == 'G'
-        # puts "to_output: #{to_output.inspect} action: #{action} ch: #{ch.inspect}"
-        # && parser.params.size == 1
-        print "\e[#{parser.params[0] + 6}G"
-
+      if ch == 'G' # Cursor movement to column
+        print "\e[#{parser.params[0] + line_indent_length}G"
         next
       end
     end
@@ -45,6 +59,9 @@ parser = VTParser.new do |action, ch, intermediate_chars, params|
   print to_output
 end
 
+#
+# Spawn the given command using PTY::spawn, and connect pipes.
+#
 begin
   PTY.spawn(command) do |stdout_and_stderr, stdin, pid|
 
