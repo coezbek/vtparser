@@ -43,4 +43,5 @@ Gem::Specification.new do |spec|
 
   spec.add_development_dependency "rspec", "~> 3.2"
   spec.add_development_dependency "solargraph", "~> 0.40.0"
+  spec.add_development_dependency "ruby-progressbar"
 end

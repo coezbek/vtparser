@@ -12,7 +12,9 @@ require_relative '../lib/vtparser'
 #
 # Run with `ruby indent_cli.rb <command>`` where <command> is the command you want to run.
 #
-# A simple loading animation is included in `examples/spinner.rb`: `ruby indent_cli.rb 'ruby spinner.rb'`
+# Two simple examples are included:
+# - A simple spinner animation is included in `examples/spinner.rb`: `ruby indent_cli.rb 'ruby spinner.rb'`
+# - A simple progress bar animation is included in `examples/progress.rb`: `ruby indent_cli.rb 'ruby progress.rb'`
 #
 
 # Get the command from ARGV
@@ -33,6 +35,9 @@ parser = VTParser.new do |action, ch, intermediate_chars, params|
   print line_indent if first_line
   first_line = false
 
+  if $DEBUG && (action != :print || !(ch =~ /\P{Cc}/))
+    puts "action: #{action}, ch: #{ch.inspect}, ch0x: 0x#{ "%02x" % ch.ord}, intermediate_chars: #{intermediate_chars}, params: #{params}"
+  end
   to_output = VTParser::to_ansi(action, ch, intermediate_chars, params)
 
   # Handle newlines, carriage returns, and cursor movement 
@@ -77,8 +82,10 @@ begin
 
     # Pipe stdout and stderr to the parser
     begin
-      # Ensure the child process has a window size, because tools such as yarn use it to identify tty mode
-      stdout_and_stderr.winsize = $stdout.winsize 
+      # Ensure the child process has the proper window size, because 
+      #  - tools such as yarn use it to identify tty mode
+      #  - some tools use it to determine the width of the terminal for formatting
+      stdout_and_stderr.winsize = [$stdout.winsize.first, $stdout.winsize.last - line_indent_length]
 
       stdout_and_stderr.each_char do |char|
 
@@ -93,7 +100,7 @@ begin
     Process.wait(pid)
     pid = nil
     exit_status = $?.exitstatus
-    result = exit_status == 0
+    # result = exit_status == 0
 
     # Clear the line, reset the cursor to the start of the line
     print "\e[2K\e[1G"
