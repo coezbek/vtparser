@@ -44,6 +44,12 @@ input = "\e[31mHello, \e[1mWorld!\e[0m\n"
 parser.parse(input)
 ```
 
+## Limitations
+
+- The parser is based on the implementation https://github.com/haberman/vtparse/ and based on a state machine which precedes Unicode. As such it does not have state transitions for Unicode characters. Rather, it will output them as `:ignore` actions. In case unicode characters are used inside escape sequences, the parser will likely not be able to handle them correctly.
+
+- The state machine does not expose all input characters to the implementation in relationship to the `DSC` (Device Control String) sequences. In particular the "Final Character" is swallowed by the statemachine from https://www.vt100.net/emu/dec_ansi_parser. To circumvent this limitation, I have modified the parser to expose the final character as intermediate_chars to the `:hook` action.
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
