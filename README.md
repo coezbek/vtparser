@@ -4,6 +4,8 @@ This gem is a parser for VT100 terminal escape sequences. It is based on the C c
 
 The purpose of this Gem is to have a relatively easy way to filter/modify the output of child/sub-processes (for instance launched via `PTY::spawn`) which use animation or colors. 
 
+Uses keyboard mapping logic from https://github.com/vidarh/keyboard_map/
+
 ## Background on VT100 Escape Sequences
 
 See https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
@@ -24,7 +26,7 @@ gem install vtparser
 
 ## Basic Usage
 
-See the minimal example below and the [`examples directory`](https://github.com/coezbek/vtparser/tree/main/examples) for more examples.
+See the minimal example below:
 
 ```ruby
 require_relative '../lib/vtparser'
@@ -44,11 +46,18 @@ input = "\e[31mHello, \e[1mWorld!\e[0m\n"
 parser.parse(input)
 ```
 
+Further samples in the [`examples directory`](https://github.com/coezbek/vtparser/tree/main/examples):
+
+- [`echo_keys.rb`](https://github.com/coezbek/vtparser/tree/main/examples/echo_keys.rb): Echoes the keys pressed by the user
+- [`indent_cli.rb`](https://github.com/coezbek/vtparser/tree/main/examples/indent_cli.rb): Indents the output of simple command line tools
+
 ## Limitations
 
 - The parser is based on the implementation https://github.com/haberman/vtparse/ and based on a state machine which precedes Unicode. As such it does not have state transitions for Unicode characters. Rather, it will output them as `:ignore` actions. In case unicode characters are used inside escape sequences, the parser will likely not be able to handle them correctly.
 
 - The state machine does not expose all input characters to the implementation in relationship to the `DSC` (Device Control String) sequences. In particular the "Final Character" is swallowed by the statemachine from https://www.vt100.net/emu/dec_ansi_parser. To circumvent this limitation, I have modified the parser to expose the final character as intermediate_chars to the `:hook` action.
+
+- The parser only outputs full `actions`. So triggering an event for the `ESC` key doesn't work (as expected).
 
 ## Development
 

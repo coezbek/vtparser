@@ -1,5 +1,9 @@
+require_relative "keymap"
+
 class VTParser
   attr_reader :intermediate_chars, :params
+
+  include Keymap
 
   def initialize(&block)
     @callback = block

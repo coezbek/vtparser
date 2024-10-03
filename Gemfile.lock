@@ -102,7 +102,7 @@ DEPENDENCIES
   rake (~> 13.0)
   rspec (~> 3.2)
   ruby-progressbar
-  solargraph (~> 0.40.0)
+  solargraph (~> 0.40.4)
   tty-prompt
   vtparser!
 
