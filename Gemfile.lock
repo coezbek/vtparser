@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    vtparser (0.1.0)
+    vtparser (0.2.0)
 
 GEM
   remote: https://rubygems.org/
@@ -102,7 +102,7 @@ DEPENDENCIES
   rake (~> 13.0)
   rspec (~> 3.2)
   ruby-progressbar
-  solargraph (~> 0.40.4)
+  solargraph (~> 0.40)
   tty-prompt
   vtparser!
 
