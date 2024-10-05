@@ -31,81 +31,55 @@ line_indent_length = 6
 # Use VTParser to process the VT100 escape sequences outputted by nested program and prepend the line_indent text.
 #
 first_line = true
-parser = VTParser.new do |action, ch, intermediate_chars, params|
-  print line_indent if first_line
-  first_line = false
+parser = VTParser.new do |action|
 
-  if $DEBUG && (action != :print || !(ch =~ /\P{Cc}/))
-    puts "action: #{action}, ch: #{ch.inspect}, ch0x: 0x#{ "%02x" % ch.ord}, intermediate_chars: #{intermediate_chars}, params: #{params}"
-  end
-  to_output = VTParser::to_ansi(action, ch, intermediate_chars, params)
+  ch = action.ch
+  intermediate_chars = action.intermediate_chars
+  params = action.params
+  action_type = action.action_type
+  to_output = action.to_ansi
 
-  # Handle newlines, carriage returns, and cursor movement 
-  case action
-  when :print, :execute, :put, :osc_put
-    if ch == "\n" || ch == "\r"
-      print ch
-      print line_indent
-      next
+  if true
+    print line_indent if first_line
+    first_line = false
+
+    if $DEBUG && (action_type != :print || !(ch =~ /\P{Cc}/))
+      puts action.inspect
     end
-  when :csi_dispatch
-    if to_output == "\e[2K" # Clear line
-      print "\e[2K"
-      print line_indent
-      next
-    else
-      if ch == 'G' # Cursor movement to column
-        print "\e[#{parser.params[0] + line_indent_length}G"
+
+    # Handle newlines, carriage returns, and cursor movement 
+    case action_type
+    when :print, :execute, :put, :osc_put
+      if ch == "\r" # || ch == "\n" 
+        print ch
+        print line_indent
         next
       end
+    when :csi_dispatch
+      if to_output == "\e[2K" # Clear line
+        print "\e[2K"
+        print line_indent
+        next
+      else
+        if ch == 'G' # Cursor movement to column
+          print "\e[#{parser.params[0] + line_indent_length}G"
+          next
+        end
+      end
     end
+  end
+
+  if $DEBUG && (action_type != :print || !(ch =~ /\P{Cc}/))
+    puts "\r\n"
+    puts action.inspect
+    puts "\r\n"
+    # sleep 5
   end
 
   print to_output
 end
 
-#
-# Spawn the given command using PTY::spawn, and connect pipes.
-#
-begin
-  PTY.spawn(command) do |stdout_and_stderr, stdin, pid|
+parser.spawn(command)
 
-    # Start separate thread to pipe stdin to the child process
-    Thread.new do     
-      while pid != nil
-        stdin.write(STDIN.readpartial(1024)) # Requires user to press enter!
-      end
-    rescue => e
-      puts "Error: #{e}"
-      exit(0)
-    end
-
-    # Pipe stdout and stderr to the parser
-    begin
-      # Ensure the child process has the proper window size, because 
-      #  - tools such as yarn use it to identify tty mode
-      #  - some tools use it to determine the width of the terminal for formatting
-      stdout_and_stderr.winsize = [$stdout.winsize.first, $stdout.winsize.last - line_indent_length]
-
-      stdout_and_stderr.each_char do |char|
-
-        parser.parse(char)
-
-      end
-    rescue Errno::EIO
-      # End of output
-    end
-
-    # Wait for the child process to exit
-    Process.wait(pid)
-    pid = nil
-    exit_status = $?.exitstatus
-    # result = exit_status == 0
-
-    # Clear the line, reset the cursor to the start of the line
-    print "\e[2K\e[1G"
-  end
-
-rescue PTY::ChildExited => e
-  puts "The child process exited: #{e}"
-end
+# Clear and reset the cursor to the start of the line
+puts "\e[2K\e[1G"

@@ -99,7 +99,7 @@ module Keymap
       yield key if key
     #when :print, :ignore
       # Regular printable characters
-      #yield KeyboardEvent.new(ch)
+      #yield KeyEvent.new(ch)
     when :esc_dispatch
       # ESC sequences without intermediates
       if intermediate_chars == ''
@@ -120,13 +120,13 @@ module Keymap
 
   def map_control_character(ch)
     if SINGLE_KEY_EVENT.key?(ch)
-      return KeyboardEvent.new(SINGLE_KEY_EVENT[ch])
+      return KeyEvent.new(SINGLE_KEY_EVENT[ch])
     elsif ch.ord.between?(0x01, 0x1A)
       # Ctrl+A to Ctrl+Z
       key = (ch.ord + 96).chr
-      return KeyboardEvent.new(key, :ctrl)
+      return KeyEvent.new(key, :ctrl)
     else
-      return KeyboardEvent.new(ch)
+      return KeyEvent.new(ch)
     end
   end
 
@@ -134,14 +134,14 @@ module Keymap
     case final_char
     when 'Z'
       # Shift+Tab
-      return KeyboardEvent.new(:tab, :shift)
+      return KeyEvent.new(:tab, :shift)
     when "\e"
       # Double ESC
-      return KeyboardEvent.new(:esc)
+      return KeyEvent.new(:esc)
     else
       # Meta key (Alt) combinations
       if final_char.ord.between?(0x20, 0x7E)
-        return KeyboardEvent.new(final_char, :meta)
+        return KeyEvent.new(final_char, :meta)
       else
         # Handle other ESC sequences if necessary
       end
@@ -168,7 +168,7 @@ module Keymap
     end
 
     if key
-      return KeyboardEvent.new(key, *modifiers)
+      return KeyEvent.new(key, *modifiers)
     else
       # Handle unrecognized sequences
     end

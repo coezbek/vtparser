@@ -6,6 +6,9 @@
 
 require 'ruby-progressbar'
 
+# Hide the cursor
+print "\e[?25l"
+
 loop do
   progressbar = ProgressBar.create
   99.times { 

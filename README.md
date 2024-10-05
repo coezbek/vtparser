@@ -32,10 +32,10 @@ See the minimal example below:
 require_relative '../lib/vtparser'
 
 # Instantiate the parser with a block to handle actions
-parser = VTParser.new do |action, ch, intermediate_chars, params|
+parser = VTParser.new do |action|
 
   # For this minimal example, we'll just turn everything back strings to print
-  print VTParser::to_ansi(action, ch, intermediate_chars, params)
+  print action.to_ansi
 
 end
 
@@ -50,6 +50,9 @@ Further samples in the [`examples directory`](https://github.com/coezbek/vtparse
 
 - [`echo_keys.rb`](https://github.com/coezbek/vtparser/tree/main/examples/echo_keys.rb): Echoes the keys pressed by the user
 - [`indent_cli.rb`](https://github.com/coezbek/vtparser/tree/main/examples/indent_cli.rb): Indents the output of simple command line tools
+- [`colorswap.rb`](https://github.com/coezbek/vtparser/tree/main/examples/colorswap.rb): Swaps the colors red / green in the input program
+- [`analyze.rb`](https://github.com/coezbek/vtparser/tree/main/examples/analyze.rb): Output all VT100 escape sequences written by the subprocess.
+- [`roundtrip.rb`](https://github.com/coezbek/vtparser/tree/main/examples/roundtrip.rb): Runs the given command and compares characters written by the command to the output of running the characters through the parser and serializing the actions back `to_ansi`. If the parser works correctly the output should be the same.
 
 ## Limitations
 
@@ -58,6 +61,10 @@ Further samples in the [`examples directory`](https://github.com/coezbek/vtparse
 - The state machine does not expose all input characters to the implementation in relationship to the `DSC` (Device Control String) sequences. In particular the "Final Character" is swallowed by the statemachine from https://www.vt100.net/emu/dec_ansi_parser. To circumvent this limitation, I have modified the parser to expose the final character as intermediate_chars to the `:hook` action.
 
 - The parser only outputs full `actions`. So triggering an event for the `ESC` key doesn't work (as expected).
+
+- The parser does not emit actions for commands which are 'interrupted' by another command."
+
+- The parser does not explain any of the actions.
 
 ## Development
 

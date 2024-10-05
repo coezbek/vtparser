@@ -1,14 +1,76 @@
 require_relative "keymap"
+require_relative "pty_support"
+
+class Action
+
+  attr_reader :action_type, :ch, :private_mode_intermediate_char, :intermediate_chars, :params
+
+  def initialize(action_type, ch, private_mode_intermediate_char, intermediate_chars, params)
+    @action_type = action_type
+    @ch = ch
+    @intermediate_chars = intermediate_chars
+    @private_mode_intermediate_char = private_mode_intermediate_char
+    @params = params
+  end
+
+  def to_s
+    to_ansi
+  end
+
+  def inspect
+    "ansi: #{to_ansi.inspect.ljust(16)} " + 
+    "action: #{@action_type.to_s.ljust(12)} #{Action.inspect_char(@ch)} " + 
+    "private mode: #{"'#{@private_mode_intermediate_char}'".ljust(3)} " + 
+    "params: '#{@params.inspect.ljust(20)}' " + 
+    "intermediate_chars: '#{@intermediate_chars}'"
+  end
+
+  def self.inspect_char(ch)
+    "ch: #{ch.inspect.ljust(4)} (ord=#{ch ? ch.ord.to_s.rjust(4) : "    "}, hex=0x#{ch ? ("%02x" % ch.ord).rjust(6) : "      "})"
+  end
+
+  def to_ansi
+    
+    case @action_type
+    when :print, :execute, :put, :osc_put, :ignore
+      # Output the character
+      return @ch if @ch
+    when :hook
+      return "\eP#{@intermediate_chars}"
+    when :esc_dispatch
+      return "\e#{@intermediate_chars}#{@ch}"
+    when :csi_dispatch
+      # Output ESC [ followed by parameters, intermediates, and final character
+      return "\e[#{@private_mode_intermediate_char}#{@params.join(';')}#{@intermediate_chars}#{@ch}"
+    when :osc_start
+      return "\e]"
+    when :osc_end
+      return '' # "\x07"  # BEL character to end OSC
+    when :unhook
+      return "" # \e must come from ESCAPE state
+    when :clear # Clear action is called when a command is interrupted by a new command (there is unfinished content in the parser)
+
+    else
+      raise "Unknown action type: #{@action_type}"
+    end
+
+    raise
+  end
+
+end
+
 
 class VTParser
-  attr_reader :intermediate_chars, :params
+  attr_reader :private_mode_intermediate_char, :intermediate_chars, :params
 
   include Keymap
+  include PtySupport
 
   def initialize(&block)
     @callback = block
     @state = :GROUND
     @intermediate_chars = ''
+    @private_mode_intermediate_char = ''
     @params = []
     @ignore_flagged = false
     initialize_states
@@ -68,7 +130,7 @@ class VTParser
         0x3a => :CSI_IGNORE,
         (0x30..0x39) => [:param, :CSI_PARAM],
         0x3b => [:param, :CSI_PARAM],
-        (0x3c..0x3f) => [:collect, :CSI_PARAM],
+        (0x3c..0x3f) => [:private_mode_collect, :CSI_PARAM],
         (0x40..0x7e) => [:csi_dispatch, :GROUND],
       },
       :CSI_PARAM => {
@@ -149,7 +211,9 @@ class VTParser
       },
       :OSC_STRING => {
         :on_entry => :osc_start,
-        (0x00..0x17) => :ignore,
+        (0x00..0x06) => :ignore,
+        (0x07) => :GROUND,       # BEL character for xterm compatibility
+        (0x08..0x17) => :ignore,
         0x19 => :ignore,
         (0x1c..0x1f) => :ignore,
         (0x20..0x7f) => :osc_put,
@@ -253,15 +317,15 @@ class VTParser
 
   def handle_action(action, ch)
     case action
-    when :execute, :print, :esc_dispatch, :csi_dispatch, :hook, :put, :unhook, :osc_start, :osc_put, :osc_end
-      @callback.call(action, ch, intermediate_chars, params) if @callback
-    when :ignore
-      # Do nothing
-      @callback.call(action, ch, intermediate_chars, params) if @callback 
+    when :private_mode_collect
+      raise "Private mode intermediate char already set" unless @private_mode_intermediate_char.empty?
+      @private_mode_intermediate_char = ch
+      return
     when :collect
       unless @ignore_flagged
         @intermediate_chars << ch
       end
+      return
     when :param
       if ch == ';'
         @params << 0
@@ -271,39 +335,25 @@ class VTParser
         end
         @params[-1] = @params[-1] * 10 + (ch.ord - '0'.ord)
       end
+      return
     when :clear
+
+      # Warning: If ESC is sent in the middle of a command, the command is cleared and there is no callback being called.
+
       @intermediate_chars = ''
+      @private_mode_intermediate_char = ''
       @params = []
       @ignore_flagged = false
-    else
-      @callback.call(:error, ch, intermediate_chars, params) if @callback
-    end
-  end
 
-  def self.to_ansi(action, ch, intermediate_chars, params)
-      
-    case action
-    when :print, :execute, :put, :osc_put, :ignore
-      # Output the character
-      return ch if ch
-    when :hook
-      return "\eP#{intermediate_chars}"
-    when :esc_dispatch
-      return "\e#{intermediate_chars}#{ch}"
-    when :csi_dispatch
-      # Output ESC [ followed by parameters, intermediates, and final character
-      return "\e[#{params.join(';')}#{intermediate_chars}#{ch}"
-    when :osc_start
-      return "\e]"
-    when :osc_end
-      return "\x07"  # BEL character to end OSC
-    when :unhook
-      return "" # \e must come from ESCAPE state
     else
-      raise "Unknown action: #{action}"
-    end
+      # when :execute, :print, :esc_dispatch, :csi_dispatch, :hook, :put, :unhook, :osc_start, :osc_put, :osc_end, :ignore
+      @callback.call(Action.new(action, ch, private_mode_intermediate_char, intermediate_chars, params)) if @callback
 
-    raise
+      @intermediate_chars = ''
+      @private_mode_intermediate_char = ''
+      @params = []
+      @ignore_flagged = false
+    end
   end
 
 end
