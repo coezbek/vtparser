@@ -212,7 +212,7 @@ class VTParser
       :OSC_STRING => {
         :on_entry => :osc_start,
         (0x00..0x06) => :ignore,
-        (0x07) => :GROUND,       # BEL character for xterm compatibility
+        (0x07) => [:osc_put, :GROUND],       # BEL character for xterm compatibility
         (0x08..0x17) => :ignore,
         0x19 => :ignore,
         (0x1c..0x1f) => :ignore,
