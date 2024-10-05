@@ -6,12 +6,11 @@ require_relative '../lib/vtparser.rb'  # Adjust the path as necessary
 RSpec.describe VTParser do
   let(:output) { '' }
   let(:parser) do
-    VTParser.new do |action, ch, intermediate_chars, params|
+    VTParser.new do |action|
 
-      # puts "action: #{action}, ch: #{ch}, intermediate_chars: #{parser_instance.intermediate_chars}, params: #{parser_instance.params}"
-      
-      output << VTParser::to_ansi(action, ch, intermediate_chars, params)
-  
+      # puts action.inspect + "\r\n"
+
+      output << action.to_ansi
     end
   end
 
